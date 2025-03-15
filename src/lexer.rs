@@ -1,6 +1,6 @@
 use crate::position::Position;
 use crate::span::Span;
-use crate::token::Token;
+use crate::token::{DiagnosticError, Token};
 use crate::tokentype::TokenType;
 use std::iter::Peekable;
 use std::str::Chars;
@@ -9,7 +9,6 @@ use std::str::Chars;
 pub struct Lexer<'src> {
     input: Peekable<Chars<'src>>,
     current: Position,
-    error_encountered: bool,
 }
 
 impl<'src> Lexer<'src> {
@@ -21,7 +20,6 @@ impl<'src> Lexer<'src> {
                 column: 1,
                 absolute: 0,
             },
-            error_encountered: false,
         }
     }
 
@@ -56,7 +54,7 @@ impl<'src> Lexer<'src> {
         }
     }
 
-    fn read_number(&mut self, first_char: char, start_pos: Position) -> (TokenType, Span) {
+    fn read_number(&mut self, first_char: char, start_pos: Position) -> Token {
         let mut number = String::from(first_char);
         let mut end_pos = start_pos;
 
@@ -88,17 +86,27 @@ impl<'src> Lexer<'src> {
             }
 
             if !has_digit {
-                return (
-                    TokenType::Error("Invalid decimal number".to_string()),
-                    Span::new(start_pos, end_pos),
-                );
+                return Token {
+                    token_type: TokenType::Error("Invalid decimal number".to_string()),
+                    span: Span::new(start_pos, end_pos),
+                    errors: vec![DiagnosticError {
+                        error_code: Some("E001".to_string()),
+                        message: "Invalid decimal number".to_string(),
+                        label: Some("Expected digits after decimal point".to_string()),
+                        span: Span::new(start_pos, end_pos),
+                    }],
+                };
             }
         }
 
-        (TokenType::Number(number), Span::new(start_pos, end_pos))
+        Token {
+            token_type: TokenType::Number(number),
+            span: Span::new(start_pos, end_pos),
+            errors: vec![],
+        }
     }
 
-    fn read_identifier(&mut self, first_char: char, start_pos: Position) -> (TokenType, Span) {
+    fn read_identifier(&mut self, first_char: char, start_pos: Position) -> Token {
         let mut identifier = String::from(first_char);
         let mut end_pos = start_pos;
 
@@ -117,10 +125,14 @@ impl<'src> Lexer<'src> {
             _ => TokenType::Identifier(identifier),
         };
 
-        (token_type, Span::new(start_pos, end_pos))
+        Token {
+            token_type,
+            span: Span::new(start_pos, end_pos),
+            errors: vec![],
+        }
     }
 
-    fn read_operator(&mut self, first_char: char, start_pos: Position) -> (TokenType, Span) {
+    fn read_operator(&mut self, first_char: char, start_pos: Position) -> Token {
         let mut operator = String::from(first_char);
         let mut end_pos = start_pos;
 
@@ -155,50 +167,71 @@ impl<'src> Lexer<'src> {
             "&" => TokenType::BitwiseAnd,
             "|" => TokenType::BitwiseOr,
             "^" => TokenType::BitwiseXor,
-            _ => TokenType::Error(format!("Invalid operator: {}", operator)),
+            _ => {
+                return Token {
+                    token_type: TokenType::Error(format!("Invalid operator: {}", operator)),
+                    span: Span::new(start_pos, end_pos),
+                    errors: vec![DiagnosticError {
+                        error_code: Some("E002".to_string()),
+                        message: format!("Invalid operator: {}", operator),
+                        label: Some("Invalid operator".to_string()),
+                        span: Span::new(start_pos, end_pos),
+                    }],
+                };
+            }
         };
 
-        (token_type, Span::new(start_pos, end_pos))
+        Token {
+            token_type,
+            span: Span::new(start_pos, end_pos),
+            errors: vec![],
+        }
     }
 
-    fn read_string(&mut self, start_pos: Position) -> (TokenType, Span) {
+    fn read_string(&mut self, start_pos: Position) -> Token {
         let mut string = String::new();
         let mut end_pos = start_pos;
-        let mut error = None;
-        let mut error_span = None;
+        let mut errors = Vec::new();
 
         while let Some((c, pos)) = self.advance() {
             match c {
                 '"' => {
                     end_pos = pos;
-                    return (TokenType::String(string), Span::new(start_pos, end_pos));
+                    return Token {
+                        token_type: TokenType::String(string),
+                        span: Span::new(start_pos, end_pos),
+                        errors,
+                    };
                 }
                 '\\' => {
                     let escape_start = pos;
-
-                    match self.advance() {
-                        Some((escaped, esc_pos)) => {
-                            end_pos = esc_pos;
-
-                            match escaped {
-                                'n' => string.push('\n'),
-                                't' => string.push('\t'),
-                                'r' => string.push('\r'),
-                                '\\' => string.push('\\'),
-                                '"' => string.push('"'),
-                                _ => {
-                                    error = Some(format!("Invalid escape sequence: \\{}", escaped));
-                                    error_span = Some(Span::new(escape_start, esc_pos));
-                                }
+                    if let Some((escaped, esc_pos)) = self.advance() {
+                        end_pos = esc_pos;
+                        match escaped {
+                            'n' => string.push('\n'),
+                            't' => string.push('\t'),
+                            'r' => string.push('\r'),
+                            '\\' => string.push('\\'),
+                            '"' => string.push('"'),
+                            _ => {
+                                errors.push(DiagnosticError {
+                                    error_code: Some("E003".to_string()),
+                                    message: format!("Invalid escape sequence: \\{}", escaped),
+                                    label: Some("Invalid escape sequence".to_string()),
+                                    span: Span::new(escape_start, esc_pos),
+                                });
+                                // Optionally recover by inserting the raw character.
+                                string.push(escaped);
                             }
                         }
-
-                        None => {
-                            error = Some("Unterminated escape sequence".to_string());
-                            error_span = Some(Span::new(escape_start, pos));
-
-                            break;
-                        }
+                    } else {
+                        errors.push(DiagnosticError {
+                            error_code: Some("E003".to_string()),
+                            message: "Unterminated escape sequence".to_string(),
+                            label: Some("Unterminated escape sequence".to_string()),
+                            span: Span::new(escape_start, pos),
+                        });
+                        break;
                     }
                 }
                 _ => {
@@ -206,22 +239,19 @@ impl<'src> Lexer<'src> {
                     end_pos = pos;
                 }
             }
-
-            if error.is_some() {
-                break;
-            }
         }
 
-        if let Some(err) = error {
-            (
-                TokenType::Error(err),
-                error_span.unwrap_or(Span::new(start_pos, end_pos)),
-            )
-        } else {
-            (
-                TokenType::Error("Unterminated string".to_string()),
-                Span::new(start_pos, end_pos),
-            )
+        errors.push(DiagnosticError {
+            error_code: Some("E004".to_string()),
+            message: "Unterminated string literal".to_string(),
+            label: Some("Unterminated string".to_string()),
+            span: Span::new(start_pos, end_pos),
+        });
+
+        Token {
+            token_type: TokenType::Error("String literal error".to_string()),
+            span: Span::new(start_pos, end_pos),
+            errors,
         }
     }
 }
@@ -230,32 +260,37 @@ impl Iterator for Lexer<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.error_encountered {
-            return None;
-        }
-
         self.skip_whitespace();
-        let (first_char, start_pos) = self.advance()?;
 
-        let (token_type, span) = match first_char {
+        let (first_char, start_pos) = self.advance()?;
+        let token = match first_char {
             '0'..='9' => self.read_number(first_char, start_pos),
             'a'..='z' | 'A'..='Z' | '_' => self.read_identifier(first_char, start_pos),
             '+' | '-' | '*' | '/' | '=' | '<' | '>' | '!' | '&' | '^' | '%' | '|' => {
                 self.read_operator(first_char, start_pos)
             }
+
             '"' => self.read_string(start_pos),
-            ';' => (TokenType::Semicolon, Span::new(start_pos, start_pos)),
+            ';' => Token {
+                token_type: TokenType::Semicolon,
+                span: Span::new(start_pos, start_pos),
+                errors: vec![],
+            },
+
             c if c.is_whitespace() => return self.next(),
-            _ => (
-                TokenType::Error(format!("Unexpected character: '{}'", first_char)),
-                Span::new(start_pos, start_pos),
-            ),
+
+            _ => Token {
+                token_type: TokenType::Error(format!("Unexpected character: '{}'", first_char)),
+                span: Span::new(start_pos, start_pos),
+                errors: vec![DiagnosticError {
+                    error_code: Some("E000".to_string()),
+                    message: format!("Unexpected character: '{}'", first_char),
+                    label: Some("Unexpected character".to_string()),
+                    span: Span::new(start_pos, start_pos),
+                }],
+            },
         };
 
-        if let TokenType::Error(_) = token_type {
-            self.error_encountered = true;
-        }
-
-        Some(Token { token_type, span })
+        Some(token)
     }
 }

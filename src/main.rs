@@ -1,7 +1,5 @@
-use ariadne::{ColorGenerator, Label, Report, ReportKind, Source};
-use tokentype::TokenType;
-
 use crate::lexer::Lexer;
+use ariadne::{Color, Label, Report, ReportKind, Source};
 
 mod lexer;
 mod position;
@@ -10,46 +8,43 @@ mod token;
 mod tokentype;
 
 fn main() {
-    let source = "1 + 1\n\"aaaaa";
+    let source = "1 + 1\n\"aaaaa\\q";
     let lexer = Lexer::new(source);
 
-    let mut colors = ColorGenerator::new();
-
-    let a = colors.next();
+    let error_color = Color::Fixed(81);
 
     println!("{}", source);
 
     for token in lexer {
-        match token.token_type {
-            TokenType::Error(ref err_msg) => {
-                dbg!(&token);
-
+        if !token.errors.is_empty() {
+            for diag in &token.errors {
                 Report::build(
                     ReportKind::Error,
                     (
                         "anonymous",
-                        (token.span.start.absolute..token.span.end.absolute),
+                        diag.span.start.absolute..diag.span.end.absolute,
                     ),
                 )
-                .with_code(1)
-                .with_message(format!("{}", err_msg))
+                .with_code(
+                    diag.error_code
+                        .clone()
+                        .unwrap_or_else(|| "Unknown".to_string()),
+                )
+                .with_message(&diag.message)
                 .with_label(
                     Label::new((
                         "anonymous",
-                        (token.span.start.absolute..token.span.end.absolute + 1),
+                        diag.span.start.absolute..diag.span.end.absolute + 1,
                     ))
-                    .with_message("This escape is invalid")
-                    .with_color(a),
+                    .with_message(diag.label.clone().unwrap_or_else(|| "Error".to_string()))
+                    .with_color(error_color),
                 )
-                .with_note("ngl u should give up coding")
                 .finish()
                 .print(("anonymous", Source::from(source)))
                 .unwrap();
-
-                break;
             }
-
-            _ => println!(
+        } else {
+            println!(
                 "{:?} @ {}..{} (line {}, col {}-{})",
                 token.token_type,
                 token.span.start.absolute,
@@ -57,7 +52,7 @@ fn main() {
                 token.span.start.line,
                 token.span.start.column,
                 token.span.end.column
-            ),
+            );
         }
     }
 }
