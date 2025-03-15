@@ -74,6 +74,7 @@ impl<'src> Lexer<'src> {
             end_pos = dot_pos;
 
             let mut has_digit = false;
+
             while let Some(c) = self.peek() {
                 if c.is_ascii_digit() {
                     let (ch, pos) = self.advance().unwrap();
@@ -122,6 +123,7 @@ impl<'src> Lexer<'src> {
 
         let token_type = match identifier.as_str() {
             "let" | "if" | "else" | "fn" | "return" => TokenType::Keyword(identifier),
+
             _ => TokenType::Identifier(identifier),
         };
 
@@ -167,6 +169,7 @@ impl<'src> Lexer<'src> {
             "&" => TokenType::BitwiseAnd,
             "|" => TokenType::BitwiseOr,
             "^" => TokenType::BitwiseXor,
+
             _ => {
                 return Token {
                     token_type: TokenType::Error(format!("Invalid operator: {}", operator)),
@@ -203,16 +206,20 @@ impl<'src> Lexer<'src> {
                         errors,
                     };
                 }
+
                 '\\' => {
                     let escape_start = pos;
+
                     if let Some((escaped, esc_pos)) = self.advance() {
                         end_pos = esc_pos;
+
                         match escaped {
                             'n' => string.push('\n'),
                             't' => string.push('\t'),
                             'r' => string.push('\r'),
                             '\\' => string.push('\\'),
                             '"' => string.push('"'),
+
                             _ => {
                                 errors.push(DiagnosticError {
                                     error_code: Some("E003".to_string()),
@@ -220,7 +227,7 @@ impl<'src> Lexer<'src> {
                                     label: Some("Invalid escape sequence".to_string()),
                                     span: Span::new(escape_start, esc_pos),
                                 });
-                                // Optionally recover by inserting the raw character.
+
                                 string.push(escaped);
                             }
                         }
@@ -231,9 +238,11 @@ impl<'src> Lexer<'src> {
                             label: Some("Unterminated escape sequence".to_string()),
                             span: Span::new(escape_start, pos),
                         });
+
                         break;
                     }
                 }
+
                 _ => {
                     string.push(c);
                     end_pos = pos;
