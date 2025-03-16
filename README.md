@@ -4,6 +4,8 @@ an extremely type-safe functional language that transpiles to Luau
 
 ## design
 
+**disclaimer:** this design is not final and is subject to change anytime
+
 ### functions
 
 ```rust
