@@ -11,7 +11,7 @@ mod token;
 mod tokentype;
 
 fn main() {
-    let source = r#"let a: number = 23;"#;
+    let source = r#"let a: (number) -> number;"#;
     let lexer = Lexer::new(source);
 
     let error_color = Color::Fixed(81);

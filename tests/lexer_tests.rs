@@ -14,7 +14,7 @@ fn test_number_token() {
     let source = "123";
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens.len(), 2);
 
     match &tokens[0].token_type {
         TokenType::Number(num) => {
@@ -32,7 +32,7 @@ fn test_identifier_token() {
     let source = "letVar";
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens.len(), 2);
 
     match &tokens[0].token_type {
         TokenType::Identifier(ident) => {
@@ -50,7 +50,7 @@ fn test_operator_token() {
     let source = "==";
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens.len(), 2);
 
     match tokens[0].token_type {
         TokenType::EqualEqual => {
@@ -67,7 +67,7 @@ fn test_string_token() {
     let source = "\"abc\"";
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens.len(), 2);
 
     match &tokens[0].token_type {
         TokenType::String(s) => {
@@ -85,7 +85,7 @@ fn test_unterminated_string_error() {
     let source = "\"abc";
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens.len(), 2);
 
     match &tokens[0].token_type {
         TokenType::Error(msg) => {
@@ -103,7 +103,7 @@ fn test_invalid_operator() {
     let source = "!=!!!==!!";
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens.len(), 2);
 
     match &tokens[0].token_type {
         TokenType::Error(msg) => {
@@ -121,7 +121,7 @@ fn test_valid_compound_operator() {
     let source = "&&";
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens.len(), 2);
 
     match tokens[0].token_type {
         TokenType::And => {
@@ -138,7 +138,7 @@ fn test_position_tracking_newline() {
     let source = "123\n456";
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 2);
+    assert_eq!(tokens.len(), 3);
 
     assert_eq!(tokens[0].span.start.line, 1);
     assert_eq!(tokens[0].span.end.line, 1);
@@ -153,7 +153,7 @@ fn test_position_tracking_columns() {
     let source = "a b c";
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 3);
+    assert_eq!(tokens.len(), 4);
 
     assert_eq!(tokens[0].span.start.column, 1);
     assert_eq!(tokens[0].span.end.column, 2);
@@ -170,7 +170,7 @@ fn test_single_char_tokens() {
     let source = "{}[]();:";
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 8);
+    assert_eq!(tokens.len(), 9);
     assert_eq!(tokens[0].token_type, TokenType::LeftBrace);
     assert_eq!(tokens[1].token_type, TokenType::RightBrace);
     assert_eq!(tokens[2].token_type, TokenType::LeftBracket);
@@ -186,7 +186,7 @@ fn test_skip_whitespace() {
     let source = "   \t\n  let";
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens.len(), 2);
     assert_eq!(tokens[0].token_type, TokenType::Keyword("let".into()));
 }
 
@@ -238,7 +238,7 @@ fn test_keywords() {
     for kw in keywords {
         let tokens = lex_all(kw);
 
-        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens.len(), 2);
         assert_eq!(tokens[0].token_type, TokenType::Keyword(kw.to_string()));
     }
 }
@@ -285,7 +285,7 @@ fn test_unterminated_escape_sequence() {
     let source = r#""\"#;
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens.len(), 2);
     assert_eq!(tokens[0].errors.len(), 2);
 
     let error_kinds: Vec<_> = tokens[0].errors.iter().map(|e| &e.kind).collect();
@@ -303,7 +303,7 @@ fn test_single_backslash_in_string() {
     let source = r#""\"#;
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens.len(), 2);
     assert_eq!(tokens[0].errors.len(), 2);
     assert!(
         tokens[0]
@@ -325,7 +325,7 @@ fn test_valid_escape_sequences() {
     let source = r#""\n\t\r\\\"a""#;
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens.len(), 2);
 
     match &tokens[0].token_type {
         TokenType::String(s) => assert_eq!(s, "\n\t\r\\\"a"),
