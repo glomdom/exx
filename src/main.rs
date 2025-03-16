@@ -8,8 +8,6 @@ mod token;
 mod tokentype;
 
 fn main() {
-    todo!("lexing `static`, `interface`, `implements`, `mixin`, `includes`");
-
     let source = r#""\"#;
     let lexer = Lexer::new(source);
 

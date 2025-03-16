@@ -218,7 +218,21 @@ fn test_invalid_decimal_number() {
 #[test]
 fn test_keywords() {
     let keywords = vec![
-        "let", "var", "fn", "rec", "type", "if", "else", "return", "class",
+        "let",
+        "var",
+        "fn",
+        "rec",
+        "type",
+        "if",
+        "else",
+        "return",
+        "class",
+        "static",
+        "interface",
+        "mixin",
+        "implements",
+        "includes",
+        "luau",
     ];
 
     for kw in keywords {
