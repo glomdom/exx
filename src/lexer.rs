@@ -217,6 +217,7 @@ impl<'src> Lexer<'src> {
                         errors,
                     };
                 }
+
                 '\\' => {
                     let escape_start = self.current;
 
@@ -246,6 +247,7 @@ impl<'src> Lexer<'src> {
                         break;
                     }
                 }
+
                 _ => string.push(c),
             }
         }
@@ -255,11 +257,11 @@ impl<'src> Lexer<'src> {
             span: Span::new(start_pos, self.current),
         });
 
-        self.error_token(
-            start_pos,
-            ErrorKind::UnterminatedString,
-            "String literal error",
-        )
+        Token {
+            token_type: TokenType::Error("String literal error".to_string()),
+            span: Span::new(start_pos, self.current),
+            errors,
+        }
     }
 }
 
@@ -297,6 +299,7 @@ impl Iterator for Lexer<'_> {
             ')' => self.single_char_token(start_pos, TokenType::RightParen),
 
             c if c.is_whitespace() => return self.next(),
+
             _ => {
                 let _ = self.advance()?;
 

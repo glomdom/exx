@@ -261,9 +261,51 @@ fn test_valid_operators() {
 }
 
 #[test]
-fn test_string_escapes() {
+fn test_unterminated_escape_sequence() {
+    let source = r#""\"#;
+    let tokens = lex_all(source);
+
+    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens[0].errors.len(), 2);
+
+    let error_kinds: Vec<_> = tokens[0].errors.iter().map(|e| &e.kind).collect();
+
+    assert!(matches!(
+        error_kinds[0],
+        ErrorKind::UnterminatedEscapeSequence
+    ));
+
+    assert!(matches!(error_kinds[1], ErrorKind::UnterminatedString));
+}
+
+#[test]
+fn test_single_backslash_in_string() {
+    let source = r#""\"#;
+    let tokens = lex_all(source);
+
+    assert_eq!(tokens.len(), 1);
+    assert_eq!(tokens[0].errors.len(), 2);
+    assert!(
+        tokens[0]
+            .errors
+            .iter()
+            .any(|e| matches!(e.kind, ErrorKind::UnterminatedEscapeSequence))
+    );
+
+    assert!(
+        tokens[0]
+            .errors
+            .iter()
+            .any(|e| matches!(e.kind, ErrorKind::UnterminatedString))
+    );
+}
+
+#[test]
+fn test_valid_escape_sequences() {
     let source = r#""\n\t\r\\\"a""#;
     let tokens = lex_all(source);
+
+    assert_eq!(tokens.len(), 1);
 
     match &tokens[0].token_type {
         TokenType::String(s) => assert_eq!(s, "\n\t\r\\\"a"),
