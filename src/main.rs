@@ -11,7 +11,18 @@ mod token;
 mod tokentype;
 
 fn main() {
-    let source = r#"let a: (number) -> number;"#;
+    let source = r#"class Person {
+    let name: string;
+    let age: number;
+
+    fn new(name: string, age: number) -> Person {
+        return Person { name, age };
+    }
+
+    fn greet(self) -> string {
+        return "Hello, my name is " + self.name;
+    }
+}"#;
     let lexer = Lexer::new(source);
 
     let error_color = Color::Fixed(81);
@@ -61,7 +72,7 @@ fn main() {
     let mut parser = Parser::new(parser_tokens);
     match parser.parse_program() {
         Ok(expr) => {
-            println!("{:#?}", expr);
+            dbg!(expr);
         }
 
         Err(err) => {

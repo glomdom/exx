@@ -1,5 +1,6 @@
 // src/ast.rs
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Stmt {
     VariableDecl {
@@ -31,12 +32,14 @@ pub enum Stmt {
     Expression(Expr),
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Parameter {
     pub name: String,
     pub type_annotation: Option<Type>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Expr {
     Binary {
@@ -54,17 +57,22 @@ pub enum Expr {
     Identifier(String),
     Grouping(Box<Expr>),
 
+    Block(Vec<Stmt>),
+    PropertyAccess {
+        object: Box<Expr>,
+        name: String,
+    },
     Call {
         callee: Box<Expr>,
         arguments: Vec<Expr>,
     },
-
     Lambda {
         params: Vec<Parameter>,
-        body: Box<Expr>, // for single-expression lambdas
+        body: Box<Expr>,
     },
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum BinaryOp {
     Add,
@@ -82,12 +90,14 @@ pub enum BinaryOp {
     Or,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum UnaryOp {
     Negate,
     Not,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Literal {
     Number(f64),
@@ -95,6 +105,7 @@ pub enum Literal {
     Boolean(bool),
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Type {
     Simple(String),

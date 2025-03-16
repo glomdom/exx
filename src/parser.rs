@@ -1,6 +1,7 @@
 use crate::ast::*;
 use std::fmt;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     Let,
@@ -23,6 +24,7 @@ pub enum TokenKind {
     Colon,
     Semicolon,
     Arrow, // ->
+    Dot,
 
     Plus,
     Minus,
@@ -43,6 +45,7 @@ pub enum TokenKind {
     Identifier(String),
     Number(String),
     String(String),
+    Boolean(bool),
 
     Eof,
 }
@@ -254,9 +257,44 @@ impl Parser {
     }
 
     fn parse_type(&mut self) -> Result<Type, ParseError> {
-        let type_name = self.consume_identifier("Expected type name")?;
+        if self.match_token(&[TokenKind::LeftParen]) {
+            let mut params = Vec::new();
 
-        Ok(Type::Simple(type_name))
+            loop {
+                params.push(self.parse_type()?);
+
+                if !self.match_token(&[TokenKind::Comma]) {
+                    break;
+                }
+            }
+
+            self.consume(TokenKind::RightParen, "Expected ')' in function type")?;
+            self.consume(TokenKind::Arrow, "Expected '->' in function type")?;
+
+            let return_type = Box::new(self.parse_type()?);
+
+            Ok(Type::Function(params, return_type))
+        } else {
+            let name = self.consume_identifier("Expected type name")?;
+
+            if self.match_token(&[TokenKind::Less]) {
+                let mut params = Vec::new();
+
+                loop {
+                    params.push(self.parse_type()?);
+
+                    if !self.match_token(&[TokenKind::Comma]) {
+                        break;
+                    }
+                }
+
+                self.consume(TokenKind::Greater, "Expected '>' in generic type")?;
+
+                Ok(Type::Generic { name, params })
+            } else {
+                Ok(Type::Simple(name))
+            }
+        }
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
@@ -411,45 +449,124 @@ impl Parser {
     }
 
     fn primary(&mut self) -> Result<Expr, ParseError> {
-        if self.match_token(&[TokenKind::Number(String::new())]) {
+        let mut expr = if self.match_token(&[TokenKind::Number(String::new())]) {
             let token = self.previous().clone();
-
             if let TokenKind::Number(n) = token.kind {
                 let num = n.parse::<f64>().map_err(|_| ParseError {
                     message: format!("Invalid number literal: {}", n),
                 })?;
-
-                return Ok(Expr::Literal(Literal::Number(num)));
+                Expr::Literal(Literal::Number(num))
+            } else {
+                return Err(ParseError {
+                    message: "Expected number literal".into(),
+                });
             }
-        }
-
-        if self.match_token(&[TokenKind::String(String::new())]) {
+        } else if self.match_token(&[TokenKind::String(String::new())]) {
             let token = self.previous().clone();
-
             if let TokenKind::String(s) = token.kind {
-                return Ok(Expr::Literal(Literal::String(s)));
+                Expr::Literal(Literal::String(s))
+            } else {
+                return Err(ParseError {
+                    message: "Expected string literal".into(),
+                });
             }
-        }
-
-        if self.match_token(&[TokenKind::Identifier(String::new())]) {
+        } else if self.match_token(&[TokenKind::Boolean(true)]) {
+            Expr::Literal(Literal::Boolean(true))
+        } else if self.match_token(&[TokenKind::Boolean(false)]) {
+            Expr::Literal(Literal::Boolean(false))
+        } else if self.match_token(&[TokenKind::Identifier(String::new())]) {
             let token = self.previous().clone();
-
             if let TokenKind::Identifier(name) = token.kind {
-                return Ok(Expr::Identifier(name));
+                Expr::Identifier(name)
+            } else {
+                return Err(ParseError {
+                    message: "Expected identifier".into(),
+                });
+            }
+        } else if self.match_token(&[TokenKind::LeftParen]) {
+            let expr = self.expression()?;
+            self.consume(TokenKind::RightParen, "Expected ')' after expression")?;
+            Expr::Grouping(Box::new(expr))
+        } else if self.match_token(&[TokenKind::LeftBrace]) {
+            let mut body = Vec::new();
+            while !self.check(&TokenKind::RightBrace) && !self.is_at_end() {
+                body.push(self.declaration()?);
+            }
+            self.consume(TokenKind::RightBrace, "Expected '}' after block")?;
+            Expr::Block(body)
+        } else {
+            return Err(ParseError {
+                message: format!("Unexpected token: {:?}", self.peek().kind),
+            });
+        };
+
+        loop {
+            if self.match_token(&[TokenKind::LeftParen]) {
+                expr = self.finish_call(expr)?;
+            } else if self.match_token(&[TokenKind::Dot]) {
+                expr = self.finish_property_access(expr)?;
+            } else {
+                break;
             }
         }
 
-        if self.match_token(&[TokenKind::LeftParen]) {
-            let expr = self.expression()?;
+        Ok(expr)
+    }
 
-            self.consume(TokenKind::RightParen, "Expected ')' after expression")?;
+    fn peek(&self) -> &ParserToken {
+        &self.tokens[self.current]
+    }
 
-            return Ok(Expr::Grouping(Box::new(expr)));
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr, ParseError> {
+        let mut arguments = Vec::new();
+        if !self.check(&TokenKind::RightParen) {
+            loop {
+                arguments.push(self.expression()?);
+                if !self.match_token(&[TokenKind::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenKind::RightParen, "Expected ')' after arguments")?;
+        Ok(Expr::Call {
+            callee: Box::new(callee),
+            arguments,
+        })
+    }
+
+    fn finish_property_access(&mut self, object: Expr) -> Result<Expr, ParseError> {
+        let name = self.consume_identifier("Expected property name after '.'")?;
+        Ok(Expr::PropertyAccess {
+            object: Box::new(object),
+            name,
+        })
+    }
+
+    #[allow(dead_code)]
+    fn parse_parameters(&mut self) -> Result<Vec<Parameter>, ParseError> {
+        let mut params = Vec::new();
+        if !self.check(&TokenKind::RightParen) {
+            loop {
+                let name = self.consume_identifier("Expected parameter name")?;
+                let type_annotation = if self.match_token(&[TokenKind::Colon]) {
+                    Some(self.parse_type()?)
+                } else {
+                    None
+                };
+                params.push(Parameter {
+                    name,
+                    type_annotation,
+                });
+
+                if !self.match_token(&[TokenKind::Comma]) {
+                    break;
+                }
+            }
         }
 
-        Err(ParseError {
-            message: "Expected expression".into(),
-        })
+        self.consume(TokenKind::RightParen, "Expected ')' after parameters")?;
+
+        Ok(params)
     }
 
     fn match_token(&mut self, kinds: &[TokenKind]) -> bool {
@@ -537,6 +654,7 @@ impl From<crate::token::Token> for ParserToken {
             TokenType::Number(n) => Number(n),
             TokenType::String(s) => String(s),
             TokenType::Identifier(s) => Identifier(s),
+            TokenType::Boolean(b) => Boolean(b),
             TokenType::Keyword(ref kw) if kw == "let" => Let,
             TokenType::Keyword(ref kw) if kw == "var" => Var,
             TokenType::Keyword(ref kw) if kw == "fn" => Fn,

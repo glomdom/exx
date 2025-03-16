@@ -4,6 +4,7 @@ pub enum TokenType {
     Keyword(String),
     Identifier(String),
     String(String),
+    Boolean(bool),
 
     Semicolon,
     Colon,
