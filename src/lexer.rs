@@ -184,9 +184,9 @@ impl<'src> Lexer<'src> {
                 "*" => TokenType::Star,
                 "/" => TokenType::Slash,
                 "%" => TokenType::Modulo,
-                "&" => TokenType::BitwiseAnd,
-                "|" => TokenType::BitwiseOr,
-                "^" => TokenType::BitwiseXor,
+                "&" => TokenType::Ampersand,
+                "|" => TokenType::Pipe,
+                "^" => TokenType::Caret,
                 "=" => TokenType::Equal,
 
                 _ => unreachable!(),
@@ -299,6 +299,10 @@ impl Iterator for Lexer<'_> {
             ':' => self.single_char_token(start_pos, TokenType::Colon),
             '(' => self.single_char_token(start_pos, TokenType::LeftParen),
             ')' => self.single_char_token(start_pos, TokenType::RightParen),
+            '[' => self.single_char_token(start_pos, TokenType::LeftBracket),
+            ']' => self.single_char_token(start_pos, TokenType::RightBracket),
+            '{' => self.single_char_token(start_pos, TokenType::LeftBrace),
+            '}' => self.single_char_token(start_pos, TokenType::RightBrace),
 
             c if c.is_whitespace() => return self.next(),
 

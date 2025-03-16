@@ -167,14 +167,18 @@ fn test_position_tracking_columns() {
 
 #[test]
 fn test_single_char_tokens() {
-    let source = "();:";
+    let source = "{}[]();:";
     let tokens = lex_all(source);
 
-    assert_eq!(tokens.len(), 4);
-    assert_eq!(tokens[0].token_type, TokenType::LeftParen);
-    assert_eq!(tokens[1].token_type, TokenType::RightParen);
-    assert_eq!(tokens[2].token_type, TokenType::Semicolon);
-    assert_eq!(tokens[3].token_type, TokenType::Colon);
+    assert_eq!(tokens.len(), 8);
+    assert_eq!(tokens[0].token_type, TokenType::LeftBrace);
+    assert_eq!(tokens[1].token_type, TokenType::RightBrace);
+    assert_eq!(tokens[2].token_type, TokenType::LeftBracket);
+    assert_eq!(tokens[3].token_type, TokenType::RightBracket);
+    assert_eq!(tokens[4].token_type, TokenType::LeftParen);
+    assert_eq!(tokens[5].token_type, TokenType::RightParen);
+    assert_eq!(tokens[6].token_type, TokenType::Semicolon);
+    assert_eq!(tokens[7].token_type, TokenType::Colon);
 }
 
 #[test]
@@ -245,9 +249,9 @@ fn test_valid_operators() {
         ("*", TokenType::Star),
         ("/", TokenType::Slash),
         ("%", TokenType::Modulo),
-        ("&", TokenType::BitwiseAnd),
-        ("|", TokenType::BitwiseOr),
-        ("^", TokenType::BitwiseXor),
+        ("&", TokenType::Ampersand),
+        ("|", TokenType::Pipe),
+        ("^", TokenType::Caret),
         ("=", TokenType::Equal),
     ];
 

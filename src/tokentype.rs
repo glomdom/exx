@@ -11,6 +11,10 @@ pub enum TokenType {
 
     LeftParen,
     RightParen,
+    LeftBracket,
+    RightBracket,
+    LeftBrace,
+    RightBrace,
 
     Equal,
     EqualEqual,
@@ -30,9 +34,9 @@ pub enum TokenType {
     Modulo,
     And,
     Or,
-    BitwiseAnd,
-    BitwiseOr,
-    BitwiseXor,
+    Ampersand,
+    Pipe,
+    Caret,
 
     Error(String),
 }
