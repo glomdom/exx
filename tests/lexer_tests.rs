@@ -1,4 +1,5 @@
 use exx::{lexer::Lexer, token::Token, tokentype::TokenType};
+use pretty_assertions::assert_eq;
 
 fn lex_all(source: &str) -> Vec<Token> {
     Lexer::new(source).collect()
@@ -84,7 +85,7 @@ fn test_unterminated_string_error() {
 
     match &tokens[0].token_type {
         TokenType::Error(msg) => {
-            assert!(msg.contains("String literal error"));
+            assert_eq!(msg.contains("String literal error"), true);
             assert_eq!(tokens[0].span.start.absolute, 0);
             assert_eq!(tokens[0].span.end.absolute, source.len());
         }
@@ -102,7 +103,7 @@ fn test_invalid_operator() {
 
     match &tokens[0].token_type {
         TokenType::Error(msg) => {
-            assert!(msg.contains("Invalid operator"));
+            assert_eq!(msg.contains("Invalid operator"), true);
             assert_eq!(tokens[0].span.start.absolute, 0);
             assert_eq!(tokens[0].span.end.absolute, 9);
         }
