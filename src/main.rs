@@ -8,7 +8,7 @@ mod token;
 mod tokentype;
 
 fn main() {
-    let source = "\"as\\s\"";
+    let source = "type Circle<T>";
     let lexer = Lexer::new(source);
 
     let error_color = Color::Fixed(81);
