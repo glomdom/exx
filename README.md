@@ -20,6 +20,23 @@ let square: (number) -> number = (x) -> x * x;
 let result = apply(square, 5); // result = 25
 ```
 
+### classes
+
+```rust
+class Person {
+    let name: string;
+    let age: number;
+
+    fn new(name: string, age: number) -> Person {
+        return Person { name, age };
+    }
+
+    fn greet(self) -> string {
+        return "Hello, my name is " + self.name;
+    }
+}
+```
+
 ### currying and partial application
 
 ```rust
