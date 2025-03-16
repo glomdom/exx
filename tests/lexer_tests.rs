@@ -213,7 +213,7 @@ fn test_invalid_decimal_number() {
 
 #[test]
 fn test_keywords() {
-    let keywords = vec!["let", "var", "type", "if", "else", "return"];
+    let keywords = vec!["let", "var", "fn", "rec", "type", "if", "else", "return"];
 
     for kw in keywords {
         let tokens = lex_all(kw);

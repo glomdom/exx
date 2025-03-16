@@ -133,7 +133,9 @@ impl<'src> Lexer<'src> {
         let identifier = self.read_sequence(|c| c.is_ascii_alphanumeric() || c == '_');
 
         let token_type = match identifier.as_str() {
-            "let" | "var" | "type" | "if" | "else" | "return" => TokenType::Keyword(identifier),
+            "let" | "var" | "fn" | "rec" | "type" | "if" | "else" | "return" => {
+                TokenType::Keyword(identifier)
+            }
 
             _ => TokenType::Identifier(identifier),
         };
