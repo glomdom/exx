@@ -147,92 +147,60 @@ impl<'src> Lexer<'src> {
 
     fn read_operator(&mut self, start_pos: Position) -> Token {
         let (first_char, _) = self.advance().unwrap();
+        let mut operator = String::from(first_char);
 
-        let token_type = match first_char {
-            '=' => {
-                if self.match_char('=') {
-                    TokenType::EqualEqual
-                } else {
-                    TokenType::Equal
-                }
+        let valid_operators = [
+            "==", "!=", "<=", ">=", "+=", "-=", "->", "&&", "||", "!", "<", ">", "+", "-", "*",
+            "/", "%", "&", "|", "^", "=",
+        ];
+
+        while let Some(next_char) = self.peek() {
+            if next_char.is_ascii_punctuation() {
+                operator.push(next_char);
+                self.advance();
+            } else {
+                break;
             }
+        }
 
-            '!' => {
-                if self.match_char('=') {
-                    TokenType::NotEqual
-                } else {
-                    TokenType::Bang
-                }
+        if valid_operators.contains(&operator.as_str()) {
+            let token_type = match operator.as_str() {
+                "==" => TokenType::EqualEqual,
+                "!=" => TokenType::NotEqual,
+                "<=" => TokenType::LessEqual,
+                ">=" => TokenType::GreaterEqual,
+                "+=" => TokenType::PlusEqual,
+                "-=" => TokenType::MinusEqual,
+                "->" => TokenType::Arrow,
+                "&&" => TokenType::And,
+                "||" => TokenType::Or,
+                "!" => TokenType::Bang,
+                "<" => TokenType::Less,
+                ">" => TokenType::Greater,
+                "+" => TokenType::Plus,
+                "-" => TokenType::Minus,
+                "*" => TokenType::Star,
+                "/" => TokenType::Slash,
+                "%" => TokenType::Modulo,
+                "&" => TokenType::BitwiseAnd,
+                "|" => TokenType::BitwiseOr,
+                "^" => TokenType::BitwiseXor,
+                "=" => TokenType::Equal,
+
+                _ => unreachable!(),
+            };
+
+            Token {
+                token_type,
+                span: Span::new(start_pos, self.current),
+                errors: vec![],
             }
-
-            '<' => {
-                if self.match_char('=') {
-                    TokenType::LessEqual
-                } else {
-                    TokenType::Less
-                }
-            }
-
-            '>' => {
-                if self.match_char('=') {
-                    TokenType::GreaterEqual
-                } else {
-                    TokenType::Greater
-                }
-            }
-
-            '+' => {
-                if self.match_char('=') {
-                    TokenType::PlusEqual
-                } else {
-                    TokenType::Plus
-                }
-            }
-
-            '-' => {
-                if self.match_char('>') {
-                    TokenType::Arrow
-                } else if self.match_char('=') {
-                    TokenType::MinusEqual
-                } else {
-                    TokenType::Minus
-                }
-            }
-
-            '*' => TokenType::Star,
-            '/' => TokenType::Slash,
-            '%' => TokenType::Modulo,
-            '&' => {
-                if self.match_char('&') {
-                    TokenType::And
-                } else {
-                    TokenType::BitwiseAnd
-                }
-            }
-
-            '|' => {
-                if self.match_char('|') {
-                    TokenType::Or
-                } else {
-                    TokenType::BitwiseOr
-                }
-            }
-
-            '^' => TokenType::BitwiseXor,
-
-            _ => {
-                return self.error_token(
-                    start_pos,
-                    ErrorKind::InvalidOperator(first_char.to_string()),
-                    &format!("Invalid operator: {}", first_char),
-                );
-            }
-        };
-
-        Token {
-            token_type,
-            span: Span::new(start_pos, self.current),
-            errors: vec![],
+        } else {
+            self.error_token(
+                start_pos,
+                ErrorKind::InvalidOperator(operator.clone()),
+                &format!("Invalid operator: `{}`", operator),
+            )
         }
     }
 

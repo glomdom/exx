@@ -92,3 +92,38 @@ fn test_unterminated_string_error() {
         _ => panic!("Expected error token for unterminated string"),
     }
 }
+
+#[test]
+fn test_invalid_operator() {
+    let source = "&=";
+    let tokens = lex_all(source);
+
+    assert_eq!(tokens.len(), 1);
+
+    match &tokens[0].token_type {
+        TokenType::Error(msg) => {
+            assert!(msg.contains("Invalid operator"));
+            assert_eq!(tokens[0].span.start.absolute, 0);
+            assert_eq!(tokens[0].span.end.absolute, 2);
+        }
+
+        _ => panic!("Expected error token for invalid operator"),
+    }
+}
+
+#[test]
+fn test_valid_compound_operator() {
+    let source = "&&";
+    let tokens = lex_all(source);
+
+    assert_eq!(tokens.len(), 1);
+
+    match tokens[0].token_type {
+        TokenType::And => {
+            assert_eq!(tokens[0].span.start.absolute, 0);
+            assert_eq!(tokens[0].span.end.absolute, 2);
+        }
+
+        _ => panic!("Expected '&&' operator token"),
+    }
+}

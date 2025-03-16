@@ -8,7 +8,7 @@ mod token;
 mod tokentype;
 
 fn main() {
-    let source = "type Circle<T> = Some(T) | None;";
+    let source = "1 !==! 1";
     let lexer = Lexer::new(source);
 
     let error_color = Color::Fixed(81);
