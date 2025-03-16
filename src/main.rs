@@ -11,14 +11,8 @@ mod token;
 mod tokentype;
 
 fn main() {
-    let source = r#"class Person {
-    let name: string;
-    let age: number;
-
-    fn new(name: string, age: number) -> Person {
-        return Person { name, age };
-    }
-}"#;
+    let source = r#"let apply: ((number) -> number, number) -> number =
+    (f, x) -> f(x);"#;
     let lexer = Lexer::new(source);
 
     let error_color = Color::Fixed(81);
@@ -50,22 +44,10 @@ fn main() {
                 .print(("anonymous", Source::from(source)))
                 .unwrap();
             }
-        } else {
-            println!(
-                "{:?} @ {}..{} (line {}, col {}:{})",
-                token.token_type,
-                token.span.start.absolute,
-                token.span.end.absolute,
-                token.span.start.line,
-                token.span.start.column,
-                token.span.end.column
-            );
         }
     }
 
     let parser_tokens: Vec<ParserToken> = tokens.into_iter().map(|t| t.into()).collect();
-
-    dbg!(&parser_tokens);
 
     let mut parser = Parser::new(parser_tokens);
     match parser.parse_program() {
