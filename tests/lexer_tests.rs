@@ -95,7 +95,7 @@ fn test_unterminated_string_error() {
 
 #[test]
 fn test_invalid_operator() {
-    let source = "&=";
+    let source = "!=!!!==!!";
     let tokens = lex_all(source);
 
     assert_eq!(tokens.len(), 1);
@@ -104,7 +104,7 @@ fn test_invalid_operator() {
         TokenType::Error(msg) => {
             assert!(msg.contains("Invalid operator"));
             assert_eq!(tokens[0].span.start.absolute, 0);
-            assert_eq!(tokens[0].span.end.absolute, 2);
+            assert_eq!(tokens[0].span.end.absolute, 9);
         }
 
         _ => panic!("Expected error token for invalid operator"),
