@@ -8,7 +8,7 @@ mod token;
 mod tokentype;
 
 fn main() {
-    let source = "1 + 1\n\"aaaaa\\q";
+    let source = "\"as\\s\"";
     let lexer = Lexer::new(source);
 
     let error_color = Color::Fixed(81);
@@ -34,7 +34,7 @@ fn main() {
                 .with_label(
                     Label::new((
                         "anonymous",
-                        diag.span.start.absolute..diag.span.end.absolute + 1,
+                        diag.span.start.absolute..diag.span.end.absolute,
                     ))
                     .with_message(diag.label.clone().unwrap_or_else(|| "Error".to_string()))
                     .with_color(error_color),

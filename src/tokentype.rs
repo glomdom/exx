@@ -6,6 +6,11 @@ pub enum TokenType {
     String(String),
 
     Semicolon,
+    Colon,
+    Arrow,
+
+    LeftAngleBracket,
+    RightAngleBracket,
 
     Equal,
     EqualEqual,
