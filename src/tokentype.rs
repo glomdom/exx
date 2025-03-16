@@ -39,4 +39,5 @@ pub enum TokenType {
     Caret,
 
     Error(String),
+    Eof,
 }

@@ -9,6 +9,7 @@ use std::str::Chars;
 pub struct Lexer<'src> {
     input: Peekable<Chars<'src>>,
     current: Position,
+    eof_emitted: bool,
 }
 
 impl<'src> Lexer<'src> {
@@ -20,6 +21,7 @@ impl<'src> Lexer<'src> {
                 column: 1,
                 absolute: 0,
             },
+            eof_emitted: false,
         }
     }
 
@@ -271,55 +273,66 @@ impl Iterator for Lexer<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.skip_whitespace();
+        if let Some(_) = self.peek() {
+            self.skip_whitespace();
 
-        let start_pos = self.current;
-        let first_char = self.peek()?;
+            let start_pos = self.current;
+            let first_char = self.peek()?;
 
-        let token = match first_char {
-            '0'..='9' => {
-                let (ch, _) = self.advance()?;
-
-                self.read_number(ch, start_pos)
-            }
-
-            'a'..='z' | 'A'..='Z' | '_' => self.read_identifier(start_pos),
-
-            '+' | '-' | '*' | '/' | '=' | '<' | '>' | '!' | '&' | '^' | '%' | '|' => {
-                self.read_operator(start_pos)
-            }
-
-            '"' => {
-                let _ = self.advance()?;
-
-                self.read_string(start_pos)
-            }
-
-            ';' => self.single_char_token(start_pos, TokenType::Semicolon),
-            ':' => self.single_char_token(start_pos, TokenType::Colon),
-            '(' => self.single_char_token(start_pos, TokenType::LeftParen),
-            ')' => self.single_char_token(start_pos, TokenType::RightParen),
-            '[' => self.single_char_token(start_pos, TokenType::LeftBracket),
-            ']' => self.single_char_token(start_pos, TokenType::RightBracket),
-            '{' => self.single_char_token(start_pos, TokenType::LeftBrace),
-            '}' => self.single_char_token(start_pos, TokenType::RightBrace),
-
-            c if c.is_whitespace() => return self.next(),
-
-            _ => {
-                let _ = self.advance()?;
-
-                Token {
-                    token_type: TokenType::Error(format!("Unexpected character: '{}'", first_char)),
-                    span: Span::new(start_pos, self.current),
-                    errors: vec![DiagnosticError {
-                        kind: ErrorKind::UnexpectedCharacter(first_char),
-                        span: Span::new(start_pos, self.current),
-                    }],
+            let token = match first_char {
+                '0'..='9' => {
+                    let (ch, _) = self.advance()?;
+                    self.read_number(ch, start_pos)
                 }
-            }
-        };
 
-        Some(token)
+                'a'..='z' | 'A'..='Z' | '_' => self.read_identifier(start_pos),
+                '+' | '-' | '*' | '/' | '=' | '<' | '>' | '!' | '&' | '^' | '%' | '|' => {
+                    self.read_operator(start_pos)
+                }
+
+                '"' => {
+                    let _ = self.advance()?;
+                    self.read_string(start_pos)
+                }
+
+                ';' => self.single_char_token(start_pos, TokenType::Semicolon),
+                ':' => self.single_char_token(start_pos, TokenType::Colon),
+                '(' => self.single_char_token(start_pos, TokenType::LeftParen),
+                ')' => self.single_char_token(start_pos, TokenType::RightParen),
+                '[' => self.single_char_token(start_pos, TokenType::LeftBracket),
+                ']' => self.single_char_token(start_pos, TokenType::RightBracket),
+                '{' => self.single_char_token(start_pos, TokenType::LeftBrace),
+                '}' => self.single_char_token(start_pos, TokenType::RightBrace),
+
+                c if c.is_whitespace() => return self.next(),
+
+                _ => {
+                    let _ = self.advance()?;
+                    Token {
+                        token_type: TokenType::Error(format!(
+                            "Unexpected character: '{}'",
+                            first_char
+                        )),
+                        span: Span::new(start_pos, self.current),
+                        errors: vec![DiagnosticError {
+                            kind: ErrorKind::UnexpectedCharacter(first_char),
+                            span: Span::new(start_pos, self.current),
+                        }],
+                    }
+                }
+            };
+
+            Some(token)
+        } else if !self.eof_emitted {
+            self.eof_emitted = true;
+
+            Some(Token {
+                token_type: TokenType::Eof,
+                span: Span::new(self.current, self.current),
+                errors: vec![],
+            })
+        } else {
+            None
+        }
     }
 }
