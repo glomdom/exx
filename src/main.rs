@@ -2,6 +2,7 @@ use crate::lexer::Lexer;
 use ariadne::{Color, Label, Report, ReportKind, Source};
 
 mod lexer;
+mod parser;
 mod position;
 mod span;
 mod token;

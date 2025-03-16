@@ -149,22 +149,21 @@ impl<'src> Lexer<'src> {
     }
 
     fn read_operator(&mut self, start_pos: Position) -> Token {
-        let (first_char, _) = self.advance().unwrap();
-        let mut operator = String::from(first_char);
+        let mut operator = String::new();
+
+        while let Some(next_char) = self.peek() {
+            if next_char.is_ascii_punctuation() {
+                let (ch, _) = self.advance().unwrap();
+                operator.push(ch);
+            } else {
+                break;
+            }
+        }
 
         let valid_operators = [
             "==", "!=", "<=", ">=", "+=", "-=", "->", "&&", "||", "!", "<", ">", "+", "-", "*",
             "/", "%", "&", "|", "^", "=",
         ];
-
-        while let Some(next_char) = self.peek() {
-            if next_char.is_ascii_punctuation() {
-                operator.push(next_char);
-                self.advance();
-            } else {
-                break;
-            }
-        }
 
         if valid_operators.contains(&operator.as_str()) {
             let token_type = match operator.as_str() {
