@@ -9,8 +9,8 @@ pub enum TokenType {
     Colon,
     Arrow,
 
-    LeftAngleBracket,
-    RightAngleBracket,
+    LeftParen,
+    RightParen,
 
     Equal,
     EqualEqual,

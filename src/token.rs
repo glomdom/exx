@@ -7,8 +7,9 @@ pub enum ErrorKind {
     InvalidDecimal,
     InvalidOperator(String),
     InvalidEscape(char),
+    UnterminatedEscapeSequence,
     UnterminatedString,
-    UnterminatedBlockComment,
+    // UnterminatedBlockComment,
 }
 
 impl ErrorKind {
@@ -19,7 +20,8 @@ impl ErrorKind {
             Self::InvalidOperator(_) => "E002".into(),
             Self::InvalidEscape(_) => "E003".into(),
             Self::UnterminatedString => "E004".into(),
-            Self::UnterminatedBlockComment => "E005".into(),
+            // Self::UnterminatedBlockComment => "E005".into(),
+            Self::UnterminatedEscapeSequence => "E006".into(),
         }
     }
 
@@ -30,7 +32,8 @@ impl ErrorKind {
             Self::InvalidOperator(op) => format!("Invalid operator: {}", op),
             Self::InvalidEscape(c) => format!("Invalid escape sequence: \\{}", c),
             Self::UnterminatedString => "Unterminated string literal".into(),
-            Self::UnterminatedBlockComment => "Unterminated block comment".into(),
+            // Self::UnterminatedBlockComment => "Unterminated block comment".into(),
+            Self::UnterminatedEscapeSequence => "Unterminated escape sequence".into(),
         }
     }
 
@@ -41,7 +44,8 @@ impl ErrorKind {
             Self::InvalidOperator(_) => "Invalid operator".into(),
             Self::InvalidEscape(_) => "Invalid escape sequence".into(),
             Self::UnterminatedString => "Unterminated string".into(),
-            Self::UnterminatedBlockComment => "Unterminated block comment".into(),
+            // Self::UnterminatedBlockComment => "Unterminated block comment".into(),
+            Self::UnterminatedEscapeSequence => "Unterminated escape sequence".into(),
         }
     }
 }
@@ -50,12 +54,6 @@ impl ErrorKind {
 pub struct DiagnosticError {
     pub kind: ErrorKind,
     pub span: Span,
-}
-
-impl DiagnosticError {
-    pub fn new(kind: ErrorKind, span: Span) -> Self {
-        Self { kind, span }
-    }
 }
 
 #[derive(Debug, Clone)]

@@ -8,7 +8,7 @@ mod token;
 mod tokentype;
 
 fn main() {
-    let source = "type Circle<T>";
+    let source = "type Circle<T> = Some(T) | None;";
     let lexer = Lexer::new(source);
 
     let error_color = Color::Fixed(81);
@@ -25,18 +25,14 @@ fn main() {
                         diag.span.start.absolute..diag.span.end.absolute,
                     ),
                 )
-                .with_code(
-                    diag.error_code
-                        .clone()
-                        .unwrap_or_else(|| "Unknown".to_string()),
-                )
-                .with_message(&diag.message)
+                .with_code(diag.kind.code())
+                .with_message(diag.kind.message())
                 .with_label(
                     Label::new((
                         "anonymous",
                         diag.span.start.absolute..diag.span.end.absolute,
                     ))
-                    .with_message(diag.label.clone().unwrap_or_else(|| "Error".to_string()))
+                    .with_message(diag.kind.label())
                     .with_color(error_color),
                 )
                 .finish()
@@ -45,13 +41,13 @@ fn main() {
             }
         } else {
             println!(
-                "{:?} @ {}..{} (line {}, col {}-{})",
+                "{:?} @ {}..{} (line {}, col {}:{})",
                 token.token_type,
                 token.span.start.absolute,
                 token.span.end.absolute,
                 token.span.start.line,
                 token.span.start.column,
-                token.span.end.column
+                token.span.end.column.saturating_sub(1)
             );
         }
     }
