@@ -83,9 +83,11 @@ impl Parser {
 
     pub fn parse_program(&mut self) -> Result<Vec<Stmt>, ParseError> {
         let mut declarations = Vec::new();
+
         while !self.is_at_end() {
             declarations.push(self.declaration()?);
         }
+
         Ok(declarations)
     }
 
@@ -104,6 +106,18 @@ impl Parser {
 
         if self.match_token(&[TokenKind::Fn]) {
             return self.function_declaration();
+        }
+
+        if self.match_token(&[TokenKind::Return]) {
+            let expr = if !self.check(&TokenKind::Semicolon) {
+                Some(self.expression()?)
+            } else {
+                None
+            };
+
+            self.consume(TokenKind::Semicolon, "Expected ';' after return statement")?;
+
+            return Ok(Stmt::Return(expr));
         }
 
         if self.match_token(&[TokenKind::Let, TokenKind::Var]) {
@@ -148,8 +162,12 @@ impl Parser {
         while !self.check(&TokenKind::RightBrace) && !self.is_at_end() {
             if self.match_token(&[TokenKind::Fn]) {
                 methods.push(self.function_declaration()?);
-            } else {
+            } else if self.match_token(&[TokenKind::Let, TokenKind::Var]) {
                 fields.push(self.variable_declaration()?);
+            } else {
+                return Err(ParseError {
+                    message: "Expected field declaration starting with 'let' or 'var', or a method declaration starting with 'fn'.".into(),
+                });
             }
         }
 
@@ -295,6 +313,18 @@ impl Parser {
                 Ok(Type::Simple(name))
             }
         }
+    }
+
+    fn parse_lambda(&mut self) -> Result<Expr, ParseError> {
+        let params = self.parse_parameters()?;
+
+        self.consume(TokenKind::Arrow, "Expected '->' after lambda parameters")?;
+
+        let body = self.expression()?;
+        Ok(Expr::Lambda {
+            params,
+            body: Box::new(body),
+        })
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
@@ -476,23 +506,51 @@ impl Parser {
             Expr::Literal(Literal::Boolean(false))
         } else if self.match_token(&[TokenKind::Identifier(String::new())]) {
             let token = self.previous().clone();
+
             if let TokenKind::Identifier(name) = token.kind {
-                Expr::Identifier(name)
+                if self.check(&TokenKind::LeftBrace) {
+                    self.advance();
+
+                    let mut fields = Vec::new();
+
+                    while !self.check(&TokenKind::RightBrace) && !self.is_at_end() {
+                        let field_name =
+                            self.consume_identifier("Expected field name in struct literal")?;
+
+                        fields.push((field_name.clone(), Expr::Identifier(field_name)));
+
+                        if !self.match_token(&[TokenKind::Comma]) {
+                            break;
+                        }
+                    }
+                    self.consume(TokenKind::RightBrace, "Expected '}' after struct literal")?;
+                    return Ok(Expr::StructLiteral { name, fields });
+                } else {
+                    return Ok(Expr::Identifier(name));
+                }
             } else {
                 return Err(ParseError {
                     message: "Expected identifier".into(),
                 });
             }
         } else if self.match_token(&[TokenKind::LeftParen]) {
-            let expr = self.expression()?;
-            self.consume(TokenKind::RightParen, "Expected ')' after expression")?;
-            Expr::Grouping(Box::new(expr))
+            if self.lambda_check() {
+                self.parse_lambda()?
+            } else {
+                let expr = self.expression()?;
+                self.consume(TokenKind::RightParen, "Expected ')' after expression")?;
+
+                Expr::Grouping(Box::new(expr))
+            }
         } else if self.match_token(&[TokenKind::LeftBrace]) {
             let mut body = Vec::new();
+
             while !self.check(&TokenKind::RightBrace) && !self.is_at_end() {
                 body.push(self.declaration()?);
             }
+
             self.consume(TokenKind::RightBrace, "Expected '}' after block")?;
+
             Expr::Block(body)
         } else {
             return Err(ParseError {
@@ -594,6 +652,35 @@ impl Parser {
         }
     }
 
+    fn lambda_check(&self) -> bool {
+        let mut index = self.current;
+        let mut paren_count = 1;
+
+        while index < self.tokens.len() {
+            match self.tokens[index].kind {
+                TokenKind::LeftParen => paren_count += 1,
+                TokenKind::RightParen => {
+                    paren_count -= 1;
+                    if paren_count == 0 {
+                        break;
+                    }
+                }
+
+                _ => {}
+            }
+
+            index += 1;
+        }
+
+        if index < self.tokens.len() && self.tokens[index].kind == TokenKind::RightParen {
+            if index + 1 < self.tokens.len() && self.tokens[index + 1].kind == TokenKind::Arrow {
+                return true;
+            }
+        }
+
+        false
+    }
+
     fn advance(&mut self) -> &ParserToken {
         if !self.is_at_end() {
             self.current += 1;
@@ -659,6 +746,7 @@ impl From<crate::token::Token> for ParserToken {
             TokenType::Keyword(ref kw) if kw == "var" => Var,
             TokenType::Keyword(ref kw) if kw == "fn" => Fn,
             TokenType::Keyword(ref kw) if kw == "class" => Class,
+            TokenType::Keyword(ref kw) if kw == "return" => Return,
             TokenType::Semicolon => Semicolon,
             TokenType::Colon => Colon,
             TokenType::Arrow => Arrow,
@@ -681,6 +769,8 @@ impl From<crate::token::Token> for ParserToken {
             TokenType::Or => Or,
             TokenType::Bang => Not,
             TokenType::Equal => Equal,
+            TokenType::Dot => Dot,
+            TokenType::Comma => Comma,
             TokenType::Eof => Eof,
 
             _ => Identifier("unknown".into()),

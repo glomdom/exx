@@ -167,7 +167,7 @@ impl<'src> Lexer<'src> {
 
         let valid_operators = [
             "==", "!=", "<=", ">=", "+=", "-=", "->", "&&", "||", "!", "<", ">", "+", "-", "*",
-            "/", "%", "&", "|", "^", "=", ".",
+            "/", "%", "&", "|", "^", "=",
         ];
 
         if valid_operators.contains(&operator.as_str()) {
@@ -306,6 +306,8 @@ impl Iterator for Lexer<'_> {
                 ']' => self.single_char_token(start_pos, TokenType::RightBracket),
                 '{' => self.single_char_token(start_pos, TokenType::LeftBrace),
                 '}' => self.single_char_token(start_pos, TokenType::RightBrace),
+                ',' => self.single_char_token(start_pos, TokenType::Comma),
+                '.' => self.single_char_token(start_pos, TokenType::Dot),
 
                 c if c.is_whitespace() => return self.next(),
 

@@ -18,10 +18,6 @@ fn main() {
     fn new(name: string, age: number) -> Person {
         return Person { name, age };
     }
-
-    fn greet(self) -> string {
-        return "Hello, my name is " + self.name;
-    }
 }"#;
     let lexer = Lexer::new(source);
 
@@ -68,6 +64,8 @@ fn main() {
     }
 
     let parser_tokens: Vec<ParserToken> = tokens.into_iter().map(|t| t.into()).collect();
+
+    dbg!(&parser_tokens);
 
     let mut parser = Parser::new(parser_tokens);
     match parser.parse_program() {

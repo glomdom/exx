@@ -9,6 +9,8 @@ pub enum TokenType {
     Semicolon,
     Colon,
     Arrow,
+    Dot,
+    Comma,
 
     LeftParen,
     RightParen,

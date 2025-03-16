@@ -30,6 +30,7 @@ pub enum Stmt {
 
     Import(String),
     Expression(Expr),
+    Return(Option<Expr>),
 }
 
 #[allow(dead_code)]
@@ -57,15 +58,22 @@ pub enum Expr {
     Identifier(String),
     Grouping(Box<Expr>),
 
+    StructLiteral {
+        name: String,
+        fields: Vec<(String, Expr)>,
+    },
+
     Block(Vec<Stmt>),
     PropertyAccess {
         object: Box<Expr>,
         name: String,
     },
+
     Call {
         callee: Box<Expr>,
         arguments: Vec<Expr>,
     },
+
     Lambda {
         params: Vec<Parameter>,
         body: Box<Expr>,
